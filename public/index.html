@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Go Message Board</title>
+
+		<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+	</head>
+	<body>
+		<h1>Message Board</h1>
+		<pre id="message"></pre>
+
+		<script>
+			$(function(){
+				url = "ws://localhost:8080/api/message/ws";
+				ws = new WebSocket(url);
+
+				send = function(data) {
+					$("#message").append((new Date())+ " ==> "+data+"\n");
+					ws.send(data);
+				}
+
+				ws.onmessage = function(msg) {
+					$("#message").append((new Date())+ " <== "+msg.data+"\n");
+        			console.log(msg);
+				}
+
+				ws.onopen = function() {
+					setInterval(function(){
+						send("ping")
+					}, 1000)
+				}
+			})()
+		</script>
+	</body>
+</html>
