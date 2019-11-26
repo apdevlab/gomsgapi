@@ -1,35 +1,23 @@
 package main
 
 import (
-	"log"
 	"net/http"
+
+	"gomsgapi/common/resolver"
+	messageHandlers "gomsgapi/modules/messages/handlers"
 
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 )
 
-var wsupgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
+var (
+	messageHandler *messageHandlers.MessageHandler
+)
 
-func wshandler(w http.ResponseWriter, r *http.Request) {
-	conn, err := wsupgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Printf("failed to set websocket upgrade: %s", err)
-		return
-	}
+func init() {
+	resolver := resolver.NewResolver()
 
-	for {
-		t, msg, err := conn.ReadMessage()
-		if err != nil {
-			log.Printf("failed to read message from websocket: %s", err)
-			break
-		}
-
-		conn.WriteMessage(t, msg)
-	}
+	messageHandler = messageHandlers.NewMessageHandler(resolver)
 }
 
 func main() {
@@ -42,15 +30,9 @@ func main() {
 
 	api := router.Group("/api")
 	{
-		api.POST("/message", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Not implemented yet"})
-		})
-		api.GET("/message", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Not implemented yet"})
-		})
-		api.GET("/message/ws", func(ctx *gin.Context) {
-			wshandler(ctx.Writer, ctx.Request)
-		})
+		api.POST("/message", messageHandler.Submit)
+		api.GET("/message", messageHandler.GetAll)
+		api.GET("/message/ws", messageHandler.HandleWs)
 	}
 
 	router.Run(":8080")
